@@ -731,6 +731,9 @@
 				}
 				document.getElementById("scoreboard").innerHTML = "Score: " + playerScore + " - " + computerScore;
 				storeScore(playerScore, computerScore, 10000);
+				if (key.code == 32){
+					restart();
+				}
 			}
 			function restart() {
 				document.getElementById("restartButton").style.display = "none";
@@ -742,9 +745,6 @@
 				d.setTime(d.getTime() + (exDays*24*60*60*1000));
 				var expires = "expires=" + d.toGMTString();
 				document.cookie = "score=" + pScore + " " + cScore + ";" + expires + ";";
-			}
-			if(key.code == 32){
-				restart();
 			}
 		</script>
 	</body>
