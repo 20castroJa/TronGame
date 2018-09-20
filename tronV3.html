@@ -743,6 +743,9 @@
 				var expires = "expires=" + d.toGMTString();
 				document.cookie = "score=" + pScore + " " + cScore + ";" + expires + ";";
 			}
+			if(key.code == 32){
+				restart();
+			}
 		</script>
 	</body>
 </html>
