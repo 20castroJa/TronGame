@@ -1,0 +1,749 @@
+<html>
+	<head>
+		<style>
+			#gameOverDiv {
+				position: absolute;
+				height: 30%;
+				width: 60%;
+				text-align: center;
+				left: 20%;
+				background-color: blue;
+				font-size: 5em;
+				line-height: 2.5em;
+				display: none;
+			}
+			#startButton {
+				position: absolute;
+				height: 20vh;
+				width: 20vh;
+				top: 40vh;
+				display: block;
+				left: 45%;
+			}
+			#restartButton {
+				position: absolute;
+				font-size: 5em;
+				bottom: 0%;
+				right: 0%;
+				text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+				background-color: rgb(255, 160, 160);
+				color: rgb(255, 160, 160);
+				display: block;
+				border: none;
+				display: none;
+			}
+			#scoreboard {
+				display: inline-block;
+				float: left;
+				font-size: 2em;
+				text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+				background-color: rgb(255, 160, 160);
+				color: rgb(255, 160, 160);
+				display: block;
+				border: none;
+				z-index: 2;
+			}
+		</style>
+	</head>
+	<body style="margin: 0; background-size: cover; background-position: -5% 5%;" onkeydown="switchDirection(event)" background = "tronImage.jpg">
+		<div id="scoreboard">Score: 0 - 0</div>
+		<canvas id="tronCanvas"></canvas>
+		<div id="gameOverDiv">Hello</div>
+		<img id="img" style="display: none" src="explosion.png">
+		<img id="startButton" src="tronStartButton.png" onclick="makeCanvas()">
+		<button id="restartButton" onclick="restart()">Restart</button>
+		<script>
+			//http://localhost:8000/OneDrive%20-%20Braintap%20Consulting/CodeRepository/Tron/tronV3.html
+			var canvas = document.getElementById("tronCanvas");
+			var screenHeight = screen.height;
+			var screenWidth = screen.width;
+			var playerDirection;
+			var computerDirection;
+			var ctx = document.getElementById("tronCanvas").getContext("2d");
+			var playerLastY;
+			var playerLastX;
+			var computerLastX;
+			var computerLastY;
+			var moveComputer;
+			var movePlayer;
+			var playerScore = 0;
+			var computerScore = 0;
+			
+			window.onload = function checkScore() {
+				var score = getScore("score");
+				if (score != "") {
+					readScoreCookie(score);
+				}
+			}
+			function readScoreCookie(scores) {
+				scores = scores.split("");
+				scores.splice(0, scores.indexOf("=") + 1);
+				playerScore = scores.splice(0, scores.indexOf(" ")).join("").replace(" ", "");
+				computerScore = scores.splice(1).join("");
+				document.getElementById("scoreboard").innerHTML = "Score: " + playerScore + " - " + computerScore;
+			}
+			function getScore(cookie) {
+				var score = cookie + "=";
+				var decodedCookie = decodeURIComponent(document.cookie);
+				var ca = decodedCookie.split(';');
+				for (var i = 0; i < ca.length; i++) {
+					var c = ca[i];
+					while (c.charAt(0) == ' ') {
+						c = c.substring(1);
+					}
+					if (c.indexOf(name) == 0) {
+						return c.substring(name.length, c.length);
+					}
+				}
+				return "";
+			}
+
+			function makeCanvas() {
+				
+				//Clears start button and styles canvas
+				document.getElementById("startButton").style.display = "none";
+				canvas.setAttribute("height", screenHeight * .75);
+				canvas.setAttribute("width", screenWidth * .75);
+				canvas.style.position = "absolute";
+				canvas.style.top = (screenHeight - canvas.height) / 4.5;
+				canvas.style.left = (screenWidth - canvas.width) / 2;
+				canvas.style.border = "3px dotted gray";
+				canvas.style.zIndex = -1;
+				
+				//Draws canvas background
+				ctx.fillStyle = "black";
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+				
+				//Makes colored columns and rows
+				for (colNum = 1; colNum <= 20; colNum ++) {
+					ctx.beginPath();
+					ctx.lineWidth = "3";
+					ctx.strokeStyle = "rgba(66, 232, 244, .3)";
+					ctx.moveTo(colNum * (canvas.height * .1), 0);
+					ctx.lineTo(colNum * (canvas.height * .1), canvas.height);
+					ctx.stroke();
+				}
+				for (rowNum = 1; rowNum <= 10; rowNum ++) {
+					ctx.beginPath();
+					ctx.lineWidth = "3";
+					ctx.strokeStyle = "rgba(255, 160, 160, .3)";
+					ctx.moveTo(0, rowNum * (canvas.width * .05));
+					ctx.lineTo(canvas.width, rowNum * (canvas.width * .05));
+					ctx.stroke();
+				}
+				
+				//Calls next functions
+				makePlayer();
+				makeComputer();
+				
+			}
+			
+			function makePlayer() {
+			
+				//Draws Player then sets player's direction and coordinates
+				ctx.beginPath();
+				ctx.arc(canvas.width * .199, canvas.height * .49, (canvas.width * .005 + canvas.height * .005) / 2, 0, 2 * Math.PI);
+				ctx.fillStyle = "rgba(66, 232, 244, 1)";
+				ctx.fill();
+				playerDirection = "right";
+				playerLastX = canvas.width * .199;
+				playerLastY = canvas.height * .49;
+				
+				//Moves computer and players after 5.25 seconds
+				setTimeout(function() { startMovingPlayer(); startMovingComputer(); }, 2450);
+				
+				//Makes temp variable "count", then creates, styles, and appends countdown timer
+				var count = 2;
+				var h1 = document.createElement("h1");
+				h1.style.width = "10%";
+				h1.style.height = "10%";
+				h1.style.position = "absolute";
+				h1.style.top = "40%";
+				h1.style.left = "45%";
+				h1.innerHTML = "3!";
+				h1.style.color = "white";
+				h1.style.textShadow = "-1px 0 black, 0 1px black, 1px 0 black, 0 -1px black";
+				h1.style.fontSize = "3em";
+				h1.style.textAlign = "center"
+				h1.style.display = "none";
+				document.body.appendChild(h1);
+				h1.style.display = "block";
+				
+				//Starts countdown
+				var countdown = setInterval(function() {
+					h1.style.transition = "font-size .5s, top .5s";
+					
+					//Changes font size and adjusts position to keep in place
+					setTimeout(function() {
+						h1.style.fontSize = ".5em";
+						h1.style.top = "49%";
+					}, 25);
+					
+					//Resets font size and position, counts down, and tests for end of countdown
+					setTimeout(function() {
+						h1.style.transition = "";
+						h1.style.top = "40%";
+						h1.style.fontSize = "3em";
+						h1.innerHTML = count + "!";
+						count --;
+						if (count == -1) {
+							clearInterval(countdown);
+							h1.innerHTML = "GO!";
+							setTimeout(function() { document.body.removeChild(h1); }, 500);
+						}
+					}, 525);
+				}, 550);
+				
+			}
+			
+			function makeComputer() {
+			
+				//Creates computer, then sets computer's direction and coordinates
+				ctx.beginPath();
+				ctx.arc(canvas.width * .801, canvas.height * .49, (canvas.width * .005 + canvas.height * .005) / 2, 0, 2 * Math.PI);
+				ctx.fillStyle = "rgba(66, 232, 244, 1)";
+				ctx.fill();
+				computerLastX = canvas.width * .801;
+				computerLastY = canvas.height * .49;
+				computerDirection = "left";
+				
+			}
+			var randomTurn;
+			var randomTimer = Math.random() * 5 + 4;
+			setInterval(function() {
+				randomTurn = true;
+			}, randomTimer * 1000);
+			function startMovingComputer() {
+				//Starts computer movement(Whole function)
+				moveComputer = setInterval(function() {
+					
+				
+					//Tests if computer direction is left
+					if (computerDirection == "left") {
+					
+						//Draws new computer player and adjusts coordinates accordingly
+						ctx.beginPath();
+						ctx.arc(computerLastX - (canvas.width * .002), computerLastY, (canvas.width * .005 + canvas.height * .005) / 2, 0, 2 * Math.PI);
+						ctx.fillStyle = "rgba(66, 232, 244, 1)";
+						ctx.fill();
+						computerLastX -= (canvas.width * .002);
+						
+						//Creates collision box and tests for running into player line
+						var imgData = ctx.getImageData(computerLastX - (canvas.width * .002) * 2, computerLastY - (canvas.width * .005 + canvas.height * .005) / 4, 1, (canvas.width * .005 + canvas.height * .005));
+						for (i = 2; i <= imgData.data.length; i += 4) {
+							if (imgData.data[i] > 240) {
+								clearInterval(moveComputer);
+								clearInterval(movePlayer);
+								gameOver("computer");
+							}
+						}
+						//Creates collision box farther ahead, tests if near trail or edge, and if it is, creates "AI"
+						imgData = imgData = ctx.getImageData(computerLastX - (canvas.width * .002) * 4, computerLastY - (canvas.width * .005 + canvas.height * .005) / 2, 1, (canvas.width * .005 + canvas.height * .005));
+						var leftCollision = false;
+						for (i = 2; i <= imgData.data.length; i += 4) {
+							if (imgData.data[i] > 240) {
+								leftCollision = true;
+							}
+						}
+						if (leftCollision == true || computerLastX < canvas.width * .02) {
+						
+							//Creates random number used later
+							var randomNum = Math.floor(Math.random() * 2);
+							
+							//Tests if comp Y coordinate is near top and turns accordingly
+							if (computerLastY < canvas.height * .02) {
+								computerDirection = "down";
+							}
+							
+							//Test if comp Y coordinate is near bottom and turns accordingly
+							else if (computerLastY > canvas.height * .98) {
+								computerDirection = "up";
+							}
+							
+							//If not near top nor bottom
+							else {
+							
+								//Sets variable for distance to nearest trails above and below (upDistance and downDistance)
+								var upDistance = computerLastY;
+								var downDistance = canvas.height - computerLastY;
+								var upImg = ctx.getImageData(computerLastX, 0, 1, computerLastY - (canvas.width * .005 + canvas.height * .005) - 1);
+								upImg = upImg.data;
+								var downImg = ctx.getImageData(computerLastX, computerLastY + (canvas.width * .005 + canvas.height * .005) + 1, 1, canvas.width - computerLastY);
+								downImg = downImg.data;
+								loop1:
+								for (i = upImg.length - 4; i >= 0; i -= 4) {
+									var blueImg = upImg[i + 2];
+									var redImg = upImg[i];
+									if (blueImg > 240 || redImg > 240) {
+										upDistance = Math.floor((upImg.length - i) / 4);
+										break loop1;
+									}
+								}
+								loop2:
+								for (i = 0; i < downImg.length; i += 4) {
+									var blueImg = downImg[i + 2];
+									var redImg = downImg[i];
+									if (blueImg > 240 || redImg > 240) {
+										downDistance = Math.floor(i / 4);
+										break loop2;
+									}
+								}
+								
+								//Uses random number if the distances are equal to decide which direction to go
+								if (upDistance == downDistance) {
+									if (randomNum == 1) {
+										computerDirection = "up";
+									}
+									else {
+										computerDirection = "down";
+									}
+								}
+								
+								//Uses distances to decide which direction to go
+								else if (upDistance > downDistance) {
+									computerDirection = "up";
+								}
+								else {
+									computerDirection = "down";
+								}
+							}
+						}
+					}
+					
+					//Tests if computer direction is right
+					if (computerDirection == "right") {
+						
+						//Draws new computer player and adjusts coordinates accordingly
+						ctx.beginPath();
+						ctx.arc(computerLastX + (canvas.width * .002), computerLastY, (canvas.width * .005 + canvas.height * .005) / 2, 0, 2 * Math.PI);
+						ctx.fillStyle = "rgba(66, 232, 244, 1)";
+						ctx.fill();
+						computerLastX += (canvas.width * .002);
+						
+						//Creates collision box and tests for running into player line
+						var imgData = ctx.getImageData(computerLastX + (canvas.width * .002) * 2, computerLastY - (canvas.width * .005 + canvas.height * .005) / 4, 1, (canvas.width * .005 + canvas.height * .005));
+						for (i = 2; i <= imgData.data.length; i += 4) {
+							if (imgData.data[i] > 240) {
+								clearInterval(moveComputer);
+								clearInterval(movePlayer);
+								gameOver("computer");
+							}
+						}
+						
+						//Creates collision box farther ahead,tests if near trail or edge, and if it is, creates "AI"
+						imgData = ctx.getImageData(computerLastX + (canvas.width * .002) * 4, computerLastY - (canvas.width * .005 + canvas.height * .005) / 2, 1, (canvas.width * .005 + canvas.height * .005));
+						var rightCollision = false;
+						for (i = 2; i <= imgData.data.length; i += 4) {
+							if (imgData.data[i] > 240) {
+								rightCollision = true;
+							}
+						}
+						if (rightCollision == true || computerLastX > canvas.width * .98) {
+						
+							//Creates random number used later
+							var randomNum = Math.floor(Math.random() * 2);
+							
+							//Tests if comp Y coordinate is near top and turns accordingly
+							if (computerLastY < canvas.height * .02) {
+								computerDirection = "down";
+							}
+							
+							//Tests if comp Y coordinate is near bottom and turns accordingly
+							else if (computerLastY > canvas.height * .98) {
+								computerDirection = "up";
+							}
+							else {
+								//Sets variable for distance to nearest trails above and below (upDistance and downDistance)
+								var upDistance = computerLastY;
+								var downDistance = canvas.height - computerLastY;
+								var upImg = ctx.getImageData(computerLastX, 0, 1, computerLastY - (canvas.width * .005 + canvas.height * .005) - 1);
+								upImg = upImg.data;
+								var downImg = ctx.getImageData(computerLastX, computerLastY + (canvas.width * .005 + canvas.height * .005) + 1, 1, canvas.width - computerLastY);
+								downImg = downImg.data;
+								loop1:
+								for (i = upImg.length - 4; i >= 0; i -= 4) {
+									var blueImg = upImg[i + 2];
+									var redImg = upImg[i];
+									if (blueImg > 240 || redImg > 240) {
+										upDistance = Math.floor((upImg.length - i) / 4);
+										break loop1;
+									}
+								}
+								loop2:
+								for (i = 0; i < downImg.length; i += 4) {
+									var blueImg = downImg[i + 2];
+									var redImg = downImg[i];
+									if (blueImg > 240 || redImg > 240) {
+										downDistance = Math.floor(i / 4);
+										break loop2;
+									}
+								}
+								
+								//Uses random number if the distances are equal to decide which direction to go
+								if (upDistance == downDistance) {
+									if (randomNum == 1) {
+										computerDirection = "up";
+									}
+									else {
+										computerDirection = "down";
+									}
+								}
+								
+								//Uses distances to decide which direction to go
+								else if (upDistance > downDistance) {
+									computerDirection = "up";
+								}
+								else {
+									computerDirection = "down";
+								}
+							}
+						}
+					}
+					
+					//Tests if computer direction is up and then commenting is the same as above
+					if (computerDirection == "up") {
+						ctx.beginPath();
+						ctx.arc(computerLastX, computerLastY - (canvas.width * .002), (canvas.width * .005 + canvas.height * .005) / 2, 0, 2 * Math.PI);
+						ctx.fillStyle = "rgba(66, 232, 244, 1)";
+						ctx.fill();
+						computerLastY -= (canvas.width * .002);
+						var imgData = ctx.getImageData(computerLastX, computerLastY - (canvas.width * .003) * 2, 1, 1);
+						if (imgData.data[2] > 240) {
+							clearInterval(moveComputer);
+							clearInterval(movePlayer);
+							gameOver("computer");
+						}
+						imgData = ctx.getImageData(computerLastX - (canvas.width * .005 + canvas.height * .005) / 2, computerLastY - (canvas.width * .002) * 4, (canvas.width * .005 + canvas.height * .005), 1);
+						var upCollision = false;
+						for (i = 2; i <= imgData.data.length; i += 4) {
+							if (imgData.data[i] > 240) {
+								upCollision = true;
+							}
+						}
+						if (upCollision == true || computerLastY < canvas.height * .02) {
+							var randomNum = Math.floor(Math.random() * 2);
+							if (computerLastX < canvas.width * .02) {
+								computerDirection = "right";
+							}
+							else if (computerLastX > canvas.width * .98) {
+								computerDirection = "left";
+							}
+							else {
+								var leftDistance = computerLastX;
+								var rightDistance = canvas.width - computerLastX;
+								var leftImg = ctx.getImageData(0, computerLastY, computerLastX - (canvas.width * .005 + canvas.height * .005) - 1, 1);
+								leftImg = leftImg.data;
+								var rightImg = ctx.getImageData(computerLastX + (canvas.width * .005 + canvas.height * .005) + 1, computerLastY, canvas.width - computerLastX, 1);
+								rightImg = rightImg.data;
+								loop1:
+								for (i = leftImg.length - 4; i >= 0; i -= 4) {
+									var blueImg = leftImg[i + 2];
+									var redImg = leftImg[i];
+									if (blueImg > 240 || redImg > 240) {
+										leftDistance = Math.floor((leftImg.length - i) / 4);
+										break loop1;
+									}
+								}
+								loop2:
+								for (i = 0; i < rightImg.length; i += 4) {
+									var blueImg = rightImg[i + 2];
+									var redImg = rightImg[i];
+									if (blueImg > 240 || redImg > 240) {
+										rightDistance = Math.floor(i / 4);
+										break loop2;
+									}
+								}
+								if (leftDistance == rightDistance) {
+									if (randomNum == 1) {
+										computerDirection = "left";
+									}
+									else {
+										computerDirection = "right";
+									}
+								}
+								else if (leftDistance > rightDistance) {
+									computerDirection = "left";
+								}
+								else {
+									computerDirection = "right";
+								}
+							}
+						}
+					}
+					
+					//Tests if computer direction is down
+					if (computerDirection == "down") {
+						ctx.beginPath();
+						ctx.arc(computerLastX, computerLastY + (canvas.width * .002), (canvas.width * .005 + canvas.height * .005) / 2, 0, 2 * Math.PI);
+						ctx.fillStyle = "rgba(66, 232, 244, 1)";
+						ctx.fill();
+						computerLastY += (canvas.height * .003);
+						var imgData = ctx.getImageData(computerLastX, computerLastY + (canvas.width * .003) * 2, 1, 1);
+						if (imgData.data[2] > 240) {
+							clearInterval(moveComputer);
+							clearInterval(movePlayer);
+							gameOver("computer");
+						}
+						imgData = ctx.getImageData(computerLastX - (canvas.width * .005 + canvas.height * .005) / 2, computerLastY + (canvas.width * .002) * 4, (canvas.width * .005 + canvas.height * .005), 1);
+						var downCollision = false;
+						for (i = 2; i <= imgData.data.length; i += 4) {
+							if (imgData.data[i] > 240) {
+								downCollision = true;
+							}
+						}
+						if (downCollision == true || computerLastY > canvas.height * .98) {
+							var randomNum = Math.floor(Math.random() * 2);
+							if (computerLastX < canvas.width * .02) {
+								computerDirection = "right";
+							}
+							else if (computerLastX > canvas.width * .98) {
+								computerDirection = "left";
+							}
+							else {
+								var leftDistance = computerLastX;
+								var rightDistance = canvas.width - computerLastX;
+								var leftImg = ctx.getImageData(0, computerLastY, computerLastX - (canvas.width * .005 + canvas.height * .005) - 1, 1);
+								leftImg = leftImg.data;
+								var rightImg = ctx.getImageData(computerLastX + (canvas.width * .005 + canvas.height * .005) + 1, computerLastY, canvas.width - computerLastX, 1);
+								rightImg = rightImg.data;
+								loop1:
+								for (i = leftImg.length - 4; i >= 0; i -= 4) {
+									var blueImg = leftImg[i + 2];
+									var redImg = leftImg[i];
+									if (blueImg > 240 || redImg > 240) {
+										leftDistance = Math.floor((leftImg.length - i) / 4);
+										break loop1;
+									}
+								}
+								loop2:
+								for (i = 0; i < rightImg.length; i += 4) {
+									var blueImg = rightImg[i + 2];
+									var redImg = rightImg[i];
+									if (blueImg > 240 || redImg > 240) {
+										rightDistance = Math.floor(i / 4);
+										break loop2;
+									}
+								}
+								if (leftDistance == rightDistance) {
+									if (randomNum == 1) {
+										computerDirection = "left";
+									}
+									else {
+										computerDirection = "right";
+									}
+								}
+								else if (leftDistance > rightDistance) {
+									computerDirection = "left";
+								}
+								else {
+									computerDirection = "right";
+								}
+							}
+						}
+					}
+					if (computerLastY < canvas.height * .01 || computerLastY > canvas.height * .99 || computerLastX < canvas.width * .01 || computerLastX > canvas.width * .99) {
+						clearInterval(moveComputer);
+						clearInterval(movePlayer);
+						gameOver("computer");
+					}
+					if (randomTurn == true) {
+						var upDistance = computerLastY;
+						var downDistance = canvas.height - computerLastY;
+						var upImg = ctx.getImageData(computerLastX, 0, 1, computerLastY - (canvas.width * .005 + canvas.height * .005) - 1);
+						upImg = upImg.data;
+						var downImg = ctx.getImageData(computerLastX, computerLastY + (canvas.width * .005 + canvas.height * .005) + 1, 1, canvas.width - computerLastY);
+						downImg = downImg.data;
+						var leftDistance = computerLastX;
+						var rightDistance = canvas.width - computerLastX;
+						var leftImg = ctx.getImageData(0, computerLastY, computerLastX - (canvas.width * .005 + canvas.height * .005) - 1, 1);
+						leftImg = leftImg.data;
+						var rightImg = ctx.getImageData(computerLastX + (canvas.width * .005 + canvas.height * .005) + 1, computerLastY, canvas.width - computerLastX, 1);
+						rightImg = rightImg.data;
+						loop1:
+						for (i = leftImg.length - 4; i >= 0; i -= 4) {
+							var blueImg = leftImg[i + 2];
+							var redImg = leftImg[i];
+							if (blueImg > 240 || redImg > 240) {
+								leftDistance = Math.floor((leftImg.length - i) / 4);
+								break loop1;
+							}
+						}
+						loop2:
+						for (i = 0; i < rightImg.length; i += 4) {
+							var blueImg = rightImg[i + 2];
+							var redImg = rightImg[i];
+							if (blueImg > 240 || redImg > 240) {
+								rightDistance = Math.floor(i / 4);
+								break loop2;
+							}
+						}
+						loop3:
+						for (i = upImg.length - 4; i >= 0; i -= 4) {
+							var blueImg = upImg[i + 2];
+							var redImg = upImg[i];
+							if (blueImg > 240 || redImg > 240) {
+								upDistance = Math.floor((upImg.length - i) / 4);
+								break loop3;
+							}
+						}
+						loop4:
+						for (i = 0; i < downImg.length; i += 4) {
+							var blueImg = downImg[i + 2];
+							var redImg = downImg[i];
+							if (blueImg > 240 || redImg > 240) {
+								downDistance = Math.floor(i / 4);
+								break loop4;
+							}
+						}
+						var distances = [
+							{name: "up", distance: upDistance},
+							{name: "down", distance: downDistance},
+							{name: "left", distance: leftDistance},
+							{name: "right", distance: rightDistance}
+						];
+						var bestDirection;
+						var highestDistance = 0;
+						for (var i = 0; i < distances.length; i++) {
+							if (distances[i].distance > highestDistance) {
+								highestDistance = distances[i].distance;
+								bestDirection = distances[i].name;
+							}
+						}
+						computerDirection = bestDirection;
+						randomTurn = false;
+					}
+				}, 10);
+			}
+			
+			function startMovingPlayer() {
+				movePlayer = setInterval(function() {
+					if (playerDirection == "right") {
+						ctx.beginPath();
+						ctx.arc(playerLastX + (canvas.width * .002), playerLastY, (canvas.width * .005 + canvas.height * .005) / 2, 0, 2 * Math.PI);
+						ctx.fillStyle = "rgba(66, 232, 244, 1)";
+						ctx.fill();
+						playerLastX += (canvas.width * .002);
+						var imgData = ctx.getImageData(playerLastX + (canvas.width * .002) * 2, playerLastY, 1, 1);
+						if (imgData.data[2] > 240) {
+							clearInterval(moveComputer);
+							clearInterval(movePlayer);
+							gameOver("player");
+						}
+					}
+					if (playerDirection == "left") {
+						ctx.beginPath();
+						ctx.arc(playerLastX - (canvas.width * .002), playerLastY, (canvas.width * .005 + canvas.height * .005) / 2, 0, 2 * Math.PI);
+						ctx.fillStyle = "rgba(66, 232, 244, 1)";
+						ctx.fill();
+						playerLastX -= (canvas.width * .002);
+						var imgData = ctx.getImageData(playerLastX - (canvas.width * .002) * 2, playerLastY, 1, 1);
+						if (imgData.data[2] > 240) {
+							clearInterval(moveComputer);
+							clearInterval(movePlayer);
+							gameOver("player");
+						}
+					}
+					if (playerDirection == "up") {
+						ctx.beginPath();
+						ctx.arc(playerLastX, playerLastY - (canvas.height * .003), (canvas.width * .005 + canvas.height * .005) / 2, 0, 2 * Math.PI);
+						ctx.fillStyle = "rgba(66, 232, 244, 1)";
+						ctx.fill();
+						playerLastY -= (canvas.height * .003);
+						var imgData = ctx.getImageData(playerLastX, playerLastY - (canvas.height * .003) * 3, 1, 1);
+						if (imgData.data[2] > 240) {
+							clearInterval(moveComputer);
+							clearInterval(movePlayer);
+							gameOver("player");
+						}
+					}
+					if (playerDirection == "down") {
+						ctx.beginPath();
+						ctx.arc(playerLastX, playerLastY + (canvas.height * .003), (canvas.width * .005 + canvas.height * .005) / 2, 0, 2 * Math.PI);
+						ctx.fillStyle = "rgba(66, 232, 244, 1)";
+						ctx.fill();
+						playerLastY += (canvas.height * .003);
+						var imgData = ctx.getImageData(playerLastX, playerLastY + (canvas.height * .003) * 3, 1, 1);
+						if (imgData.data[2] > 240) {
+							clearInterval(moveComputer);
+							clearInterval(movePlayer);
+							gameOver("player");
+						}
+					}
+					if (playerLastX <= 0 || playerLastX >= canvas.width || playerLastY <= 0 || playerLastY >= canvas.height) {
+						clearInterval(movePlayer);
+						clearInterval(moveComputer);
+						gameOver("player");
+					}
+				}, 10);
+			}
+			
+			function switchDirection(key) {
+				if (key.keyCode == 37 && playerDirection != "right") {
+					playerDirection = "left";
+				}
+				if (key.keyCode == 38 && playerDirection != "down") {
+					playerDirection = "up";
+				}
+				if (key.keyCode == 39 && playerDirection != "left") {
+					playerDirection = "right";
+				}
+				if (key.keyCode == 40 && playerDirection != "up") {
+					playerDirection = "down";
+				}
+			}
+			
+			function gameOver(loser) {
+				document.getElementById("restartButton").style.display = "block";
+				if (loser == "player") {
+					computerScore ++;
+					var counter = 1;
+					var increase = setInterval(function() {
+						var random = Math.random() * .05 + .975;
+						ctx.drawImage(document.getElementById("img"), playerLastX - (canvas.width * .0333 * counter / 2) * random, playerLastY - (canvas.height * .05 * counter / 2) * random, canvas.width * .0333 * counter, canvas.height * .05 * counter);
+						counter += .4
+						if (counter >= 6) {
+							clearInterval(increase);
+						}
+					}, 100);
+					document.getElementById("gameOverDiv").style.display = "block";
+					document.getElementById("gameOverDiv").style.backgroundColor = "rgb(255, 160, 160)";
+					document.getElementById("gameOverDiv").style.borderRadius = "10px 10px 10px 10px";
+					document.getElementById("gameOverDiv").innerHTML = "Computer Wins!";
+					document.getElementById("gameOverDiv").style.textShadow = "-1px 0 black, 0 1px black, 1px 0 black, 0 -1px black";
+					document.getElementById("gameOverDiv").style.color = "rgb(255, 160, 160)";
+				}
+				else {
+					playerScore ++;
+					var counter = 1;
+					var increase = setInterval(function() {
+						var random = Math.random() * .05 + .975;
+						ctx.drawImage(document.getElementById("img"), computerLastX - (canvas.width * .0333 * counter / 2) * random, computerLastY - (canvas.height * .05 * counter / 2) * random, canvas.width * .0333 * counter, canvas.height * .05 * counter);
+						counter += .4
+						if (counter >= 6) {
+							clearInterval(increase);
+						}
+					}, 100);
+					document.getElementById("gameOverDiv").style.display = "block";
+					document.getElementById("gameOverDiv").style.backgroundColor = "rgb(255, 160, 160)";
+					document.getElementById("gameOverDiv").style.borderRadius = "10px 10px 10px 10px";
+					document.getElementById("gameOverDiv").innerHTML = "Player Wins!";
+					document.getElementById("gameOverDiv").style.textShadow = "-1px 0 black, 0 1px black, 1px 0 black, 0 -1px black";
+					document.getElementById("gameOverDiv").style.color = "rgb(255, 160, 160)";
+				}
+				document.getElementById("scoreboard").innerHTML = "Score: " + playerScore + " - " + computerScore;
+				storeScore(playerScore, computerScore, 10000);
+			}
+			function restart() {
+				document.getElementById("restartButton").style.display = "none";
+				document.getElementById("gameOverDiv").style.display = "none";
+				makeCanvas();
+			}
+			function storeScore(pScore, cScore, exDays) {
+				var d = new Date();
+				d.setTime(d.getTime() + (exDays*24*60*60*1000));
+				var expires = "expires=" + d.toGMTString();
+				document.cookie = "score=" + pScore + " " + cScore + ";" + expires + "path:http://localhost:8000/OneDrive%20-%20Braintap%20Consulting/CodeRepository/Tron/tronV3.html;";
+			}
+		</script>
+	</body>
+</html>
